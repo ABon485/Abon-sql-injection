@@ -1,56 +1,33 @@
 <?php
 require_once 'templates/header.php';
-?>
 
-<?php
-$servername = "localhost";
-$username = "root";
-$database = "practice_security";
-$password = "";
+$db = new PDO("mysql:host=localhost;dbname=practice_security", "root", "");
 
-try {
-    $conn = new PDO("mysql:host=$servername;dbname=$database", $username, $password);
-    // set the PDO error mode to exception
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // echo "Connected successfully";
-} catch (PDOException $e) {
-    echo "Connection failed: " . $e->getMessage();
-}
-?>
-
-<?php
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['username']) && !empty($_POST['password'])) :
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['username']) && !empty($_POST['password'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    $query = "SELECT username, credit_card_number FROM userdata WHERE username=:username and password=:password";
-    $statement = $conn->prepare($query);
-    $statement->bindParam(':username', $username, PDO::PARAM_STR);
-    $statement->bindParam(':password', $password, PDO::PARAM_STR);
+    $query = "SELECT username, credit_card_number FROM userdata WHERE username = :username";
+    $statement = $db->prepare($query);
+    $statement->execute(['username' => $username]);
+    $user = $statement->fetch();
 
-    $statement->execute();
-    $list_of_users = $statement->fetchAll();
-
-    if (count($list_of_users) == 0) :
-        ?>
-        <div class="text-danger">Wrong username or password !</div>
-    <?php
-    else :
-        foreach ($list_of_users as $user) :
-            ?>
-            <div class="card m-3">
-                <div class="card-header">
-                    <span><?php echo $user['username'] ?></span>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Your credit card number: <?php echo $user['credit_card_number']; ?></p>
-                </div>
+    if (!$user || $user['password'] != $password) {
+        echo '<div class="text-danger">Wrong username or password!</div>';
+    } else {
+?>
+        <div class="card m-3">
+            <div class="card-header">
+                <span><?php echo htmlspecialchars($user['username']); ?></span>
             </div>
-            <hr>
-        <?php
-        endforeach;
-    endif;
-endif;
+            <div class="card-body">
+                <p class="card-text">Your credit card number: <?php echo htmlspecialchars($user['credit_card_number']); ?></p>
+            </div>
+        </div>
+        <hr>
+<?php
+    }
+}
 ?>
 
 <form action="" method="post" class="m-3">
@@ -59,7 +36,7 @@ endif;
             <input type="text" class="form-control" placeholder="Enter Username" name="username">
         </div>
         <div class="col">
-            <input type="text" class="form-control" placeholder="Enter password" name="password">
+            <input type="password" class="form-control" placeholder="Enter password" name="password">
         </div>
     </div>
 
